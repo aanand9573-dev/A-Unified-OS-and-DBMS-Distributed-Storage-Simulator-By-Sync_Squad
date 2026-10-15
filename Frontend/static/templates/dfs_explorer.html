@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}DFS File Manager{% endblock %}
+{% block page_icon %}fas fa-folder-open{% endblock %}
+{% block page_heading %}Distributed File System Explorer{% endblock %}
+
+{% block content %}
+<!-- Storage Node Cluster Status Bar -->
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-server text-primary"></i>
+            Simulated Storage Node Cluster Status
+        </h5>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-1 bg-dark-subtle px-2 py-1 border border-secondary rounded">
+                <i class="fas fa-sitemap text-info me-1"></i>
+                <span class="small text-muted fw-bold">ALLOCATION ALGO:</span>
+                <select class="form-select form-select-sm form-select-custom py-0" id="select-active-allocation-algo" style="width: auto; font-size: 0.8rem;" onchange="updateClusterAllocationAlgorithm(this.value)">
+                    <option value="ROUND_ROBIN">Round Robin</option>
+                    <option value="LOAD_BASED">Load-Based</option>
+                    <option value="FCFS">FCFS</option>
+                </select>
+            </div>
+            <button class="btn btn-sm btn-outline-success" onclick="repairClusterReplication()" title="Auto-repair and restore full 2-way block replication">
+                <i class="fas fa-heartbeat me-1"></i> Repair Replicas
+            </button>
+            <button class="btn btn-sm btn-outline-custom" data-bs-toggle="modal" data-bs-target="#addNodeModal">
+                <i class="fas fa-plus me-1"></i> Add Storage Node
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3" id="nodes-container">
+        <!-- Node status cards populated dynamically -->
+        <div class="col-12 text-center text-muted">Loading storage nodes...</div>
+    </div>
+</div>
+
+<!-- File Explorer Toolbar -->
+<div class="card-custom mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2" id="breadcrumb-container">
+            <span class="fs-5 fw-bold text-white"><i class="fas fa-hdd text-warning me-2"></i>DFS Path:</span>
+            <div id="breadcrumb-trail" class="d-flex align-items-center gap-1"></div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
+                <i class="fas fa-upload me-1"></i> Upload Real File
+            </button>
+            <button class="btn btn-outline-custom text-success" data-bs-toggle="modal" data-bs-target="#createTextFileModal">
+                <i class="fas fa-file-alt me-1"></i> Create Text File
+            </button>
+            <button class="btn btn-outline-custom text-purple" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+                <i class="fas fa-folder-plus me-1"></i> New Folder
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Files & Folders Directory Table -->
+<div class="card-custom">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-copy text-success"></i>
+            Files & Directories List
+        </h5>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Blocks</th>
+                    <th>Replication</th>
+                    <th>Created Time</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="dfs-table-body">
+                <tr>
+                    <td colspan="7" class="text-center text-muted">Loading file system explorer...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Upload Real File Modal -->
+<div class="modal fade" id="uploadFileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-upload text-primary me-2"></i>Upload Real File
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-upload-file" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">SELECT FILE FROM COMPUTER</label>
+                        <input type="file" class="form-control form-control-custom" id="upload-file-input" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">BLOCK SPLITTING SIZE</label>
+                        <select class="form-select form-select-custom" id="upload-block-size">
+                            <option value="1">1 MB per Block</option>
+                            <option value="2" selected>2 MB per Block (Default)</option>
+                            <option value="5">5 MB per Block</option>
+                        </select>
+                        <small class="text-muted">The uploaded file will be physically split into binary block files of this size.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">NODE ALLOCATION ALGORITHM</label>
+                        <select class="form-select form-select-custom" id="upload-allocation-algo">
+                            <option value="DEFAULT" selected>Cluster Active Algorithm (Current)</option>
+                            <option value="ROUND_ROBIN">Round Robin</option>
+                            <option value="LOAD_BASED">Load-Based (Least-Loaded)</option>
+                            <option value="FCFS">FCFS (Sequential Fill)</option>
+                        </select>
+                        <small class="text-muted">Select how blocks are distributed across storage nodes.</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100 mt-2">
+                        <i class="fas fa-network-wired me-1"></i> Upload & Distribute Blocks
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Text File Modal -->
+<div class="modal fade" id="createTextFileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-file-alt text-success me-2"></i>Create Text Document
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-create-text-file">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">FILENAME</label>
+                        <input type="text" class="form-control form-control-custom" id="text-filename" placeholder="notes.txt" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">NODE ALLOCATION ALGORITHM</label>
+                        <select class="form-select form-select-custom" id="text-allocation-algo">
+                            <option value="DEFAULT" selected>Cluster Active Algorithm (Current)</option>
+                            <option value="ROUND_ROBIN">Round Robin</option>
+                            <option value="LOAD_BASED">Load-Based (Least-Loaded)</option>
+                            <option value="FCFS">FCFS (Sequential Fill)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">TEXT CONTENT</label>
+                        <textarea class="form-control form-control-custom font-mono" id="text-content" rows="6" placeholder="Type document text here..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 fw-bold">
+                        <i class="fas fa-save me-1"></i> Save to Distributed Storage
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Folder Modal -->
+<div class="modal fade" id="createFolderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-folder-plus text-purple me-2"></i>Create New Directory
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-create-folder">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">FOLDER NAME</label>
+                        <input type="text" class="form-control form-control-custom" id="folder-name-input" placeholder="e.g. Assignments" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom w-100 mt-2">Create Directory</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Storage Node Modal -->
+<div class="modal fade" id="addNodeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-server text-primary me-2"></i>Add New Simulated Storage Node
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-node">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">NODE NAME</label>
+                        <input type="text" class="form-control form-control-custom" id="node-name-input" placeholder="e.g. Storage Node 5" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">CAPACITY (MB)</label>
+                        <input type="number" class="form-control form-control-custom" id="node-cap-input" value="500" min="100" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom w-100 mt-2">Initialize Node Folder</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Block Distribution Details Modal -->
+<div class="modal fade" id="fileDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold" id="details-file-title">
+                    <i class="fas fa-info-circle text-info me-2"></i>File Block & Node Distribution Metadata
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3" id="details-file-summary">
+                    <!-- File summary -->
+                </div>
+
+                <h6 class="fw-bold text-white mb-2"><i class="fas fa-cubes text-warning me-2"></i>Block Layout & Replication Map</h6>
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead>
+                            <tr>
+                                <th>Block ID</th>
+                                <th>Size</th>
+                                <th>MD5 Checksum</th>
+                                <th>Primary Storage Node</th>
+                                <th>Replica Storage Node</th>
+                            </tr>
+                        </thead>
+                        <tbody id="details-blocks-tbody">
+                            <!-- Blocks -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Text File Modal -->
+<div class="modal fade" id="viewTextModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold" id="view-text-title">View File Content</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="p-3 bg-black border border-secondary text-success rounded-3 font-mono" id="view-text-body" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap;"></pre>
+            </div>
+<!-- Rename File Modal -->
+<div class="modal fade" id="renameFileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-edit text-warning me-2"></i>Rename File
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-rename-file">
+                    <input type="hidden" id="rename-file-id">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">NEW FILENAME</label>
+                        <input type="text" class="form-control form-control-custom" id="rename-new-filename" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">Update Filename</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configure Node Capacity Modal -->
+<div class="modal fade" id="configNodeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-sliders-h text-primary me-2"></i>Configure Node Capacity
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-config-node">
+                    <input type="hidden" id="config-node-id">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">NODE ID</label>
+                        <input type="text" class="form-control form-control-custom" id="config-node-name-disp" readonly disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">SIMULATED CAPACITY (MB)</label>
+                        <input type="number" class="form-control form-control-custom" id="config-node-cap-input" min="1" required>
+                        <small class="text-muted">Adjusting capacity affects free-space calculations and block placement simulation.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom w-100 fw-bold">Save Capacity</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dfs_explorer.js') }}"></script>
+{% endblock %}

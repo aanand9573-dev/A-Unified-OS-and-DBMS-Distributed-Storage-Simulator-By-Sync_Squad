@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Process Management{% endblock %}
+{% block page_icon %}fas fa-tasks{% endblock %}
+{% block page_heading %}Process Simulator{% endblock %}
+
+{% block content %}
+<!-- Top Controls & Summary Row -->
+<div class="row g-4 mb-4">
+    <!-- Process Summary Cards -->
+    <div class="col-lg-8">
+        <div class="row g-3">
+            <div class="col-sm-3">
+                <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle text-center">
+                    <small class="text-muted d-block fw-bold">RUNNING PROCESS</small>
+                    <div class="fs-5 fw-bold text-success mt-1" id="summary-running">P101</div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle text-center">
+                    <small class="text-muted d-block fw-bold">READY QUEUE</small>
+                    <div class="fs-5 fw-bold text-primary mt-1" id="summary-ready-count">2 Processes</div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle text-center">
+                    <small class="text-muted d-block fw-bold">WAITING QUEUE</small>
+                    <div class="fs-5 fw-bold text-warning mt-1" id="summary-waiting-count">1 Process</div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle text-center">
+                    <small class="text-muted d-block fw-bold">COMPLETED</small>
+                    <div class="fs-5 fw-bold text-danger mt-1" id="summary-terminated-count">1 Process</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Process Action Button -->
+    <div class="col-lg-4 d-flex align-items-center justify-content-end gap-2">
+        <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createProcessModal">
+            <i class="fas fa-plus-circle me-1"></i> Create Process
+        </button>
+        <button class="btn btn-outline-custom" onclick="resetProcesses()">
+            <i class="fas fa-undo me-1"></i> Reset Sample Data
+        </button>
+    </div>
+</div>
+
+<!-- Process State Lifecycle Visual Diagram Card -->
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-project-diagram text-primary"></i>
+            Process State Lifecycle Diagram
+        </h5>
+        <span class="badge bg-secondary">OS Concept</span>
+    </div>
+    <div class="row align-items-center text-center g-3 py-2">
+        <div class="col-md">
+            <div class="p-3 border border-secondary rounded-3" id="state-node-new">
+                <div class="badge badge-new mb-1">NEW</div>
+                <div class="small text-muted">Created</div>
+            </div>
+        </div>
+        <div class="col-auto text-muted"><i class="fas fa-arrow-right fs-5"></i></div>
+        <div class="col-md">
+            <div class="p-3 border border-primary rounded-3" id="state-node-ready">
+                <div class="badge badge-ready mb-1">READY</div>
+                <div class="small text-muted">Ready Queue</div>
+            </div>
+        </div>
+        <div class="col-auto text-muted"><i class="fas fa-exchange-alt fs-5 text-primary"></i></div>
+        <div class="col-md">
+            <div class="p-3 border border-success rounded-3" id="state-node-running">
+                <div class="badge badge-running mb-1">RUNNING</div>
+                <div class="small text-muted">CPU Executing</div>
+            </div>
+        </div>
+        <div class="col-auto text-muted"><i class="fas fa-exchange-alt fs-5 text-warning"></i></div>
+        <div class="col-md">
+            <div class="p-3 border border-warning rounded-3" id="state-node-waiting">
+                <div class="badge badge-waiting mb-1">WAITING</div>
+                <div class="small text-muted">I/O Wait</div>
+            </div>
+        </div>
+        <div class="col-auto text-muted"><i class="fas fa-arrow-right fs-5"></i></div>
+        <div class="col-md">
+            <div class="p-3 border border-danger rounded-3" id="state-node-terminated">
+                <div class="badge badge-terminated mb-1">TERMINATED</div>
+                <div class="small text-muted">Finished</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Process Table -->
+<div class="card-custom">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-list text-primary"></i>
+            Active Process Control Blocks (PCB Table)
+        </h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>PID</th>
+                    <th>Process Name</th>
+                    <th>Type</th>
+                    <th>Arrival Time</th>
+                    <th>Burst Time</th>
+                    <th>Priority</th>
+                    <th>Current State</th>
+                    <th>State Transitions & Actions</th>
+                </tr>
+            </thead>
+            <tbody id="process-table-body">
+                <tr>
+                    <td colspan="8" class="text-center text-muted">Loading processes...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Process History & Lifecycle Audit Log Card -->
+<div class="card-custom mt-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-history text-cyan"></i>
+            Process History & Operation Audit Log
+        </h5>
+        <button class="btn btn-sm btn-outline-custom" onclick="loadProcessHistory()">
+            <i class="fas fa-sync-alt me-1"></i> Refresh History
+        </button>
+    </div>
+    <div class="table-responsive" style="max-height: 280px;">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>PID</th>
+                    <th>Name</th>
+                    <th>Task Type</th>
+                    <th>Transition / Action</th>
+                    <th>Operation Details</th>
+                </tr>
+            </thead>
+            <tbody id="process-history-body">
+                <tr>
+                    <td colspan="6" class="text-center text-muted">Loading history...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Process Modal -->
+<div class="modal fade" id="createProcessModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-plus-circle text-primary me-2"></i>Create New Process
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-create-process">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">PROCESS ID (PID)</label>
+                        <input type="text" class="form-control form-control-custom" id="input-pid" placeholder="e.g. P106" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">PROCESS NAME</label>
+                        <input type="text" class="form-control form-control-custom" id="input-name" placeholder="e.g. Video Downloader" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-bold">OPERATION / TYPE</label>
+                            <select class="form-select form-select-custom" id="input-type">
+                                <option value="Interactive">Interactive</option>
+                                <option value="CPU Bound">CPU Bound</option>
+                                <option value="I/O Bound">I/O Bound</option>
+                                <option value="System Task">System Task</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-bold">INITIAL STATE</label>
+                            <select class="form-select form-select-custom" id="input-state">
+                                <option value="NEW">NEW</option>
+                                <option value="READY" selected>READY</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="form-label small text-muted fw-bold">ARRIVAL TIME</label>
+                            <input type="number" class="form-control form-control-custom" id="input-at" value="0" min="0" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small text-muted fw-bold">BURST TIME</label>
+                            <input type="number" class="form-control form-control-custom" id="input-bt" value="5" min="1" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small text-muted fw-bold">PRIORITY (1=High)</label>
+                            <input type="number" class="form-control form-control-custom" id="input-priority" value="2" min="1" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom w-100 mt-2">
+                        <i class="fas fa-check me-1"></i> Add Process to System
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/process.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_icon %}fas fa-chart-pie{% endblock %}
+{% block page_heading %}DFS Overview{% endblock %}
+
+{% block content %}
+<!-- KPI Summary Cards Grid -->
+<div class="row g-3 mb-4">
+    <!-- DFS Total Files Card -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-blue">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="kpi-dfs-files">0</div>
+                <div class="kpi-label">DFS Files Stored</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DFS Total Blocks Card -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-warning">
+                <i class="fas fa-cubes"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="kpi-dfs-blocks">0</div>
+                <div class="kpi-label">Total File Blocks</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Online Storage Nodes Card -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-cyan">
+                <i class="fas fa-server"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="kpi-online-nodes">4 / 4</div>
+                <div class="kpi-label">Online Storage Nodes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memory Used Card -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-purple">
+                <i class="fas fa-memory"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="kpi-memory-used">500 MB</div>
+                <div class="kpi-label">Simulated RAM Used</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processes Card -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-green">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="kpi-total-processes">0</div>
+                <div class="kpi-label">Active Processes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deadlock Status Card -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-green" id="kpi-deadlock-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+                <div class="kpi-value fs-6 text-success" id="kpi-deadlock-status">SAFE</div>
+                <div class="kpi-label">Banker's State</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Storage Nodes Status Grid -->
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-network-wired text-primary"></i>
+            Distributed Storage Node Cluster Status
+        </h5>
+        <a href="/dfs" class="btn btn-sm btn-outline-custom">DFS File Manager</a>
+    </div>
+
+    <div class="row g-3" id="dash-nodes-row">
+        <!-- Nodes -->
+    </div>
+</div>
+
+<!-- Main Visualization Grid -->
+<div class="row g-4 mb-4">
+    <!-- Process States Chart -->
+    <div class="col-lg-7">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-chart-bar text-primary"></i>
+                    OS Process State Breakdown
+                </h5>
+                <span class="badge bg-primary-subtle text-primary">Live Metrics</span>
+            </div>
+            <div style="height: 280px; position: relative;">
+                <canvas id="chart-process-states"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memory Allocation Donut Chart -->
+    <div class="col-lg-5">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-chart-pie text-purple"></i>
+                    Memory Utilization (1000 MB RAM)
+                </h5>
+                <span class="badge bg-purple-subtle text-purple" id="badge-frag-percent">Frag: 0 MB</span>
+            </div>
+            <div style="height: 280px; position: relative;" class="d-flex align-items-center justify-content-center">
+                <canvas id="chart-memory-usage"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Module Previews & Live Logs Grid -->
+<div class="row g-4">
+    <!-- CPU & Disk Quick Status -->
+    <div class="col-lg-6">
+        <div class="card-custom mb-4">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-microchip text-primary"></i>
+                    CPU & Disk Scheduling Previews
+                </h5>
+                <a href="/cpu" class="btn btn-sm btn-outline-custom">Manage CPU</a>
+            </div>
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle">
+                        <small class="text-muted d-block uppercase fw-bold mb-1">CPU SCHEDULER</small>
+                        <div class="fw-bold text-white fs-6 mb-1">Active Algo: FCFS</div>
+                        <small class="text-secondary">Ready Queue: <span id="dash-ready-count"
+                                class="text-primary font-mono fw-bold">0</span> processes</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle">
+                        <small class="text-muted d-block uppercase fw-bold mb-1">STORAGE DISK SCHEDULER</small>
+                        <div class="fw-bold text-white fs-6 mb-1">Algo: <span id="dash-disk-algo" class="text-primary font-mono">FCFS</span> | Head: <span id="dash-head-pos" class="text-warning font-mono">50</span></div>
+                        <small class="text-secondary">Tracks Queue: <span id="dash-disk-queue" class="text-cyan font-mono">[10, 90, 35]</span></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-lock text-warning"></i>
+                    Process Synchronization Status
+                </h5>
+                <a href="/sync" class="btn btn-sm btn-outline-custom">Manage Sync</a>
+            </div>
+            <div class="d-flex align-items-center justify-content-between p-3 border border-secondary-subtle rounded-3">
+                <div>
+                    <span class="fw-bold text-white d-block">Mutex Lock: Shared Database Buffer</span>
+                    <small class="text-secondary" id="dash-mutex-owner">Owner: None (UNLOCKED)</small>
+                </div>
+                <span class="badge badge-ready" id="dash-mutex-badge">UNLOCKED</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live System Activity Log Widget -->
+    <div class="col-lg-6">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-terminal text-success"></i>
+                    Live System & DFS Activity Logs
+                </h5>
+                <a href="/logs" class="btn btn-sm btn-outline-custom">View All Logs</a>
+            </div>
+            <div class="terminal-window" id="dash-terminal-logs">
+                <div class="text-muted small">Loading live logs...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

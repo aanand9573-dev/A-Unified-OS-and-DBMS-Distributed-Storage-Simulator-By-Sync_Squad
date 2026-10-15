@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DFS Simulator{% endblock %} - Interactive Dashboard</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FontAwesome 6 Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <div id="wrapper">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand-icon">
+                    <i class="fas fa-network-wired"></i>
+                </div>
+                <div>
+                    <div class="sidebar-brand-title">DFS SIMULATOR</div>
+                    <div class="sidebar-brand-subtitle">Distributed Storage & Kernel</div>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-category">MAIN DASHBOARD</li>
+                <li>
+                    <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Overview Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="menu-category">DISTRIBUTED STORAGE (DFS)</li>
+                <li>
+                    <a href="/dfs" class="nav-link {% if request.path == '/dfs' %}active{% endif %}">
+                        <i class="fas fa-folder-open"></i>
+                        <span>DFS File Manager</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/topology" class="nav-link {% if request.path == '/topology' %}active{% endif %}">
+                        <i class="fas fa-sitemap"></i>
+                        <span>Node Topology & Blocks</span>
+                    </a>
+                </li>
+
+                <li class="menu-category">OS SIMULATOR MODULES</li>
+                <li>
+                    <a href="/process" class="nav-link {% if request.path == '/process' %}active{% endif %}">
+                        <i class="fas fa-tasks"></i>
+                        <span>Process Management</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/cpu" class="nav-link {% if request.path == '/cpu' %}active{% endif %}">
+                        <i class="fas fa-microchip"></i>
+                        <span>CPU Scheduling</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/memory" class="nav-link {% if request.path == '/memory' %}active{% endif %}">
+                        <i class="fas fa-memory"></i>
+                        <span>Memory Management</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/disk" class="nav-link {% if request.path == '/disk' %}active{% endif %}">
+                        <i class="fas fa-hdd"></i>
+                        <span>Disk Scheduling</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/deadlock" class="nav-link {% if request.path == '/deadlock' %}active{% endif %}">
+                        <i class="fas fa-lock-open"></i>
+                        <span>Deadlock Avoidance</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/sync" class="nav-link {% if request.path == '/sync' %}active{% endif %}">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Synchronization</span>
+                    </a>
+                </li>
+
+                <li class="menu-category">SYSTEM MONITORING</li>
+                <li>
+                    <a href="/logs" class="nav-link {% if request.path == '/logs' %}active{% endif %}">
+                        <i class="fas fa-terminal"></i>
+                        <span>System Activity Logs</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="p-3 border-top border-secondary-subtle mt-auto">
+                <button
+                    class="btn btn-outline-danger w-100 btn-sm d-flex align-items-center justify-content-center gap-2"
+                    onclick="resetFullSystem()">
+                    <i class="fas fa-undo"></i>
+                    <span>Reset All State</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Container -->
+        <main id="main-content">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="page-header-title">
+                    <i class="{% block page_icon %}fas fa-layer-group{% endblock %} text-primary"></i>
+                    <span>{% block page_heading %}Dashboard{% endblock %}</span>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <div class="system-status-badge">
+                        <span class="status-dot"></span>
+                        <span>SYSTEM ONLINE</span>
+                    </div>
+                    <div class="text-secondary font-mono small d-none d-md-block" id="header-clock">--:--:--</div>
+                </div>
+            </header>
+
+            <!-- Page Body Content -->
+            <div class="container-fluid p-4">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Main Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Memory Management{% endblock %}
+{% block page_icon %}fas fa-memory{% endblock %}
+{% block page_heading %}Memory Manager Simulator (1000 MB RAM){% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="row g-4 mb-4">
+    <!-- Total Memory -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-blue">
+                <i class="fas fa-microchip"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="mem-total-val">1000 MB</div>
+                <div class="kpi-label">Total Simulated RAM</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Used Memory -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-purple">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="mem-used-val">500 MB</div>
+                <div class="kpi-label">Allocated Memory</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Free Memory -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-green">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="mem-free-val">500 MB</div>
+                <div class="kpi-label">Available Free Space</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Fragmentation -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card-custom kpi-card">
+            <div class="kpi-icon kpi-warning">
+                <i class="fas fa-puzzle-piece"></i>
+            </div>
+            <div>
+                <div class="kpi-value" id="mem-frag-val">0 MB</div>
+                <div class="kpi-label">External Fragmentation</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Memory Allocation & Map Section -->
+<div class="row g-4 mb-4">
+    <!-- Allocation Form -->
+    <div class="col-lg-4">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-plus-circle text-primary"></i>
+                    Memory Request Form
+                </h5>
+            </div>
+
+            <form id="form-memory-allocation">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">PROCESS ID (PID)</label>
+                    <input type="text" class="form-control form-control-custom" id="mem-input-pid" placeholder="e.g. P103" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">PROCESS NAME</label>
+                    <input type="text" class="form-control form-control-custom" id="mem-input-name" placeholder="e.g. Graphic Engine" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">REQUESTED MEMORY SIZE (MB)</label>
+                    <input type="number" class="form-control form-control-custom" id="mem-input-size" placeholder="150" min="1" max="1000" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small text-muted fw-bold">ALLOCATION ALGORITHM</label>
+                    <select class="form-select form-select-custom" id="mem-input-algo">
+                        <option value="First Fit" selected>First Fit (First block large enough)</option>
+                        <option value="Best Fit">Best Fit (Smallest block large enough)</option>
+                        <option value="Worst Fit">Worst Fit (Largest block available)</option>
+                    </select>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i class="fas fa-memory me-1"></i> Allocate Memory Block
+                    </button>
+                    <button type="button" class="btn btn-outline-custom text-warning" onclick="resetMemory()">
+                        <i class="fas fa-undo me-1"></i> Reset Memory State
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Visual Memory Map Visualizer -->
+    <div class="col-lg-8">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-map-marked-alt text-success"></i>
+                    Contiguous Memory Map Bar
+                </h5>
+                <span class="badge bg-success-subtle text-success">Interactive Map</span>
+            </div>
+
+            <p class="text-secondary small mb-3">
+                Below is the simulated 1000 MB RAM layout. Click on any allocated block to release its memory back to the free pool.
+            </p>
+
+            <!-- Memory Bar Component -->
+            <div class="memory-map-container mb-4" id="visual-memory-map">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Memory Donut Chart & Block Legend -->
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="chart-mem-donut"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle">
+                        <h6 class="fw-bold text-white mb-2">Memory Concepts</h6>
+                        <ul class="text-secondary small mb-0 ps-3">
+                            <li><strong>First Fit:</strong> Allocates in the first available free block that fits.</li>
+                            <li><strong>Best Fit:</strong> Allocates in the smallest suitable free block to minimize leftover space.</li>
+                            <li><strong>Worst Fit:</strong> Allocates in the largest suitable free block to leave large remaining blocks.</li>
+                            <li><strong>Coalescing:</strong> Adjacent free blocks are automatically merged on release.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Memory Partition Blocks Table -->
+<div class="card-custom">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-th-list text-primary"></i>
+            Memory Partitions & Block Layout Table
+        </h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Block ID</th>
+                    <th>Start Address</th>
+                    <th>End Address</th>
+                    <th>Size (MB)</th>
+                    <th>Status</th>
+                    <th>Occupant Process</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="memory-table-body">
+                <tr>
+                    <td colspan="7" class="text-center text-muted">Loading memory blocks...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/memory.js') }}"></script>
+{% endblock %}

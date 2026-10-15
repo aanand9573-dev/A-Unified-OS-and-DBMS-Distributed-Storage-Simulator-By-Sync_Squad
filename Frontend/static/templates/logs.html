@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}System Activity Logs{% endblock %}
+{% block page_icon %}fas fa-terminal{% endblock %}
+{% block page_heading %}Live System Activity Console{% endblock %}
+
+{% block content %}
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-filter text-primary"></i>
+            Log Filter & Console Controls
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+            <div class="form-check form-switch text-secondary me-2">
+                <input class="form-check-input" type="checkbox" id="check-auto-refresh" checked>
+                <label class="form-check-label small" for="check-auto-refresh">Live Auto-Refresh (3s)</label>
+            </div>
+            <button class="btn btn-sm btn-outline-custom text-warning" onclick="clearLogs()">
+                <i class="fas fa-trash me-1"></i> Clear Logs
+            </button>
+            <button class="btn btn-sm btn-outline-custom text-success" onclick="downloadLogs()">
+                <i class="fas fa-download me-1"></i> Export Logs
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label small text-muted fw-bold">FILTER BY MODULE</label>
+            <select class="form-select form-select-custom" id="select-log-module" onchange="loadLogs()">
+                <option value="ALL" selected>All OS Modules</option>
+                <option value="PROCESS">PROCESS Management</option>
+                <option value="CPU">CPU Scheduler</option>
+                <option value="MEMORY">MEMORY Manager</option>
+                <option value="DISK">DISK Scheduler</option>
+                <option value="DEADLOCK">DEADLOCK Avoidance</option>
+                <option value="SYNCHRONIZATION">SYNCHRONIZATION Locks</option>
+                <option value="SYSTEM">SYSTEM Engine</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label small text-muted fw-bold">SEARCH LOG MESSAGES</label>
+            <input type="text" class="form-control form-control-custom" id="input-log-search" placeholder="Type keyword to filter..." onkeyup="filterLogRows()">
+        </div>
+    </div>
+</div>
+
+<!-- Terminal Log Feed Window -->
+<div class="card-custom">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-terminal text-success"></i>
+            OS Kernel & Simulator Event Stream
+        </h5>
+        <span class="badge bg-secondary" id="log-count-badge">Total Logs: 0</span>
+    </div>
+
+    <div class="terminal-window" style="max-height: 550px;" id="full-terminal-logs">
+        <!-- Log items -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/logs.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Deadlock Management{% endblock %}
+{% block page_icon %}fas fa-lock-open{% endblock %}
+{% block page_heading %}Deadlock Avoidance & Banker's Algorithm{% endblock %}
+
+{% block content %}
+<!-- Safety Status Alert Header -->
+<div class="card-custom mb-4" id="deadlock-status-alert">
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon kpi-green" id="deadlock-status-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+                <h4 class="fw-bold mb-1 text-success" id="deadlock-status-title">SYSTEM IN SAFE STATE</h4>
+                <div class="text-secondary" id="deadlock-status-desc">
+                    Safe Sequence Found: <span class="font-mono text-white fw-bold" id="deadlock-safe-seq-text">&lt;P1, P3, P4, P0, P2&gt;</span>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary-custom" onclick="openRequestModal()">
+                <i class="fas fa-hand-paper me-1"></i> Request Resource
+            </button>
+            <button class="btn btn-outline-custom text-warning" onclick="resetDeadlock()">
+                <i class="fas fa-undo me-1"></i> Reset Matrices
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Resource Matrices Editor Grid -->
+<div class="row g-4 mb-4">
+    <!-- Allocation & Available Matrices -->
+    <div class="col-lg-6">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-table text-primary"></i>
+                    Allocation & Available Vector
+                </h5>
+            </div>
+
+            <!-- Available Vector Box -->
+            <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle mb-3">
+                <label class="form-label small text-muted fw-bold mb-2">AVAILABLE RESOURCES VECTOR</label>
+                <div class="d-flex gap-2" id="available-inputs-container">
+                    <!-- Available inputs -->
+                </div>
+            </div>
+
+            <!-- Allocation Matrix Table -->
+            <label class="form-label small text-muted fw-bold mb-2">CURRENT ALLOCATION MATRIX</label>
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr id="alloc-table-head">
+                            <!-- Resource Headers -->
+                        </tr>
+                    </thead>
+                    <tbody id="alloc-table-body">
+                        <!-- Allocation rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Max & Calculated Need Matrix -->
+    <div class="col-lg-6">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-calculator text-purple"></i>
+                    Max Matrix & Calculated Need Matrix
+                </h5>
+            </div>
+
+            <!-- Max Matrix Table -->
+            <label class="form-label small text-muted fw-bold mb-2">MAXIMUM DECLARATION MATRIX</label>
+            <div class="table-responsive mb-3">
+                <table class="table table-custom">
+                    <thead>
+                        <tr id="max-table-head">
+                            <!-- Headers -->
+                        </tr>
+                    </thead>
+                    <tbody id="max-table-body">
+                        <!-- Max rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Calculated Need Matrix -->
+            <label class="form-label small text-muted fw-bold mb-2">CALCULATED NEED MATRIX (Need = Max - Allocation)</label>
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr id="need-table-head">
+                            <!-- Headers -->
+                        </tr>
+                    </thead>
+                    <tbody id="need-table-body">
+                        <!-- Need rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Step-by-Step Banker's Execution Log -->
+<div class="card-custom">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-list-check text-success"></i>
+            Banker's Algorithm Step-by-Step Execution Traversal
+        </h5>
+        <button class="btn btn-sm btn-outline-custom" onclick="calculateDeadlockSafety()">
+            <i class="fas fa-sync-alt me-1"></i> Re-evaluate Safety
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Step</th>
+                    <th>Process Executed</th>
+                    <th>Previous Work Vector</th>
+                    <th>Need Vector</th>
+                    <th>Allocated Vector</th>
+                    <th>New Work Vector (Work + Allocation)</th>
+                </tr>
+            </thead>
+            <tbody id="bankers-steps-body">
+                <tr>
+                    <td colspan="6" class="text-center text-muted">Calculating safety steps...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Resource Request Modal -->
+<div class="modal fade" id="requestResourceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-white" style="border-radius: 14px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title font-main fw-bold">
+                    <i class="fas fa-hand-paper text-warning me-2"></i>Simulate Resource Request
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-resource-request">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">SELECT REQUESTING PROCESS</label>
+                        <select class="form-select form-select-custom" id="req-select-pid">
+                            <!-- Populated -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">REQUEST VECTOR</label>
+                        <div class="d-flex gap-2" id="req-inputs-container">
+                            <!-- Inputs -->
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100 mt-2">
+                        <i class="fas fa-check me-1"></i> Evaluate Resource Request
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/deadlock.js') }}"></script>
+{% endblock %}

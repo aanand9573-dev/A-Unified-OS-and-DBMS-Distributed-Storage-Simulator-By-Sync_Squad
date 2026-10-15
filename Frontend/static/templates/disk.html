@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Disk Scheduling{% endblock %}
+{% block page_icon %}fas fa-hdd{% endblock %}
+{% block page_heading %}Disk Scheduler Simulator{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Disk Settings Form Card -->
+    <div class="col-lg-4">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <div>
+                    <h5 class="card-title-custom">
+                        <i class="fas fa-sliders-h text-primary"></i>
+                        Disk Simulation Parameters
+                    </h5>
+                    <small class="text-secondary" style="font-size: 0.75rem;">Simulated disk scheduling (educational simulation; not physical hard drive control)</small>
+                </div>
+            </div>
+
+            <form id="form-disk-scheduler">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">INITIAL DISK HEAD POSITION</label>
+                    <input type="number" class="form-control form-control-custom font-mono" id="disk-input-head" value="50" min="0" max="199" required>
+                    <small class="text-muted">Cylinder position where head currently rests (0-199).</small>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small text-muted fw-bold mb-0">DISK REQUEST QUEUE (CSV)</label>
+                        <button class="btn btn-xs btn-outline-info py-0 px-2" type="button" style="font-size: 0.75rem;" onclick="loadDfsDiskRequests()" title="Load tracks generated from real DFS file/block write & read operations">
+                            <i class="fas fa-hdd me-1"></i>Load DFS Tracks
+                        </button>
+                    </div>
+                    <input type="text" class="form-control form-control-custom font-mono" id="disk-input-queue" value="10, 90, 35, 70, 20" required>
+                    <small class="text-muted">Comma-separated list of track request numbers.</small>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small text-muted fw-bold">ALGORITHM</label>
+                        <select class="form-select form-select-custom" id="disk-select-algo">
+                            <option value="FCFS">FCFS</option>
+                            <option value="SSTF" selected>SSTF</option>
+                            <option value="SCAN">SCAN</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small text-muted fw-bold">SCAN DIRECTION</label>
+                        <select class="form-select form-select-custom" id="disk-select-direction">
+                            <option value="right">Right (Towards Max)</option>
+                            <option value="left">Left (Towards 0)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="button" class="btn btn-primary-custom" onclick="runDiskScheduler()">
+                        <i class="fas fa-play me-1"></i> Run Selected Algorithm
+                    </button>
+                    <button type="button" class="btn btn-outline-custom text-cyan" onclick="compareDiskAlgorithms()">
+                        <i class="fas fa-balance-scale me-1"></i> Compare All Algorithms
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scheduled Sequence & Metrics Cards -->
+    <div class="col-lg-8">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-route text-success"></i>
+                    Head Movement & Scheduled Sequence
+                </h5>
+                <span class="badge bg-success-subtle text-success" id="disk-active-algo-name">SSTF</span>
+            </div>
+
+            <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle mb-4">
+                <small class="text-muted d-block uppercase fw-bold mb-1">SCHEDULED SEEK ORDER SEQUENCE</small>
+                <div class="fs-5 font-mono text-warning fw-bold" id="disk-sequence-display">
+                    50 → 35 → 20 → 10 → 70 → 90
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <div class="p-3 border border-primary rounded-3 bg-dark-subtle text-center">
+                        <small class="text-muted d-block fw-bold">TOTAL HEAD MOVEMENT</small>
+                        <div class="fs-3 fw-bold text-primary mt-1" id="disk-total-movement">140 Cylinders</div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="p-3 border border-purple rounded-3 bg-dark-subtle text-center">
+                        <small class="text-muted d-block fw-bold">AVERAGE SEEK DISTANCE</small>
+                        <div class="fs-3 fw-bold text-purple mt-1" id="disk-avg-movement">28.00 Cylinders</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-Time DFS Storage Disk I/O Activity & Queue -->
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-layer-group text-info"></i>
+            Live DFS Storage Disk I/O Queue & Dispatched Operations
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted fw-bold mb-0">REAL DISK ALGORITHM:</label>
+            <select class="form-select form-select-sm form-select-custom w-auto py-0" id="live-disk-select-algo" onchange="updateLiveDiskAlgorithm(this.value)">
+                <option value="FCFS">FCFS</option>
+                <option value="SSTF">SSTF</option>
+                <option value="SCAN">SCAN</option>
+            </select>
+            <button class="btn btn-sm btn-outline-info py-0" onclick="loadLiveDiskMetrics()" title="Refresh Live I/O">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3 col-6">
+            <div class="p-2 border border-secondary-subtle rounded bg-dark-subtle text-center">
+                <small class="text-muted d-block fw-bold" style="font-size: 0.7rem;">CURRENT HEAD POSITION</small>
+                <span class="fs-5 fw-bold text-warning font-mono" id="live-disk-head">50</span>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-2 border border-secondary-subtle rounded bg-dark-subtle text-center">
+                <small class="text-muted d-block fw-bold" style="font-size: 0.7rem;">TOTAL SERVICED I/O</small>
+                <span class="fs-5 fw-bold text-success font-mono" id="live-disk-serviced">0</span>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-2 border border-secondary-subtle rounded bg-dark-subtle text-center">
+                <small class="text-muted d-block fw-bold" style="font-size: 0.7rem;">TOTAL SEEK DISTANCE</small>
+                <span class="fs-5 fw-bold text-primary font-mono" id="live-disk-total-seeks">0 Cyl</span>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-2 border border-secondary-subtle rounded bg-dark-subtle text-center">
+                <small class="text-muted d-block fw-bold" style="font-size: 0.7rem;">AVG SEEK DISTANCE</small>
+                <span class="fs-5 fw-bold text-purple font-mono" id="live-disk-avg-seek">0.00 Cyl</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-custom table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>I/O ID</th>
+                    <th>Time</th>
+                    <th>Block ID</th>
+                    <th>Operation</th>
+                    <th>Cylinder Track</th>
+                    <th>Seek Distance</th>
+                    <th>Host Latency</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="live-disk-tbody">
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-3">No storage I/O operations recorded yet. Upload or download files to generate live disk operations.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Visual Disk Track Head Movement Chart -->
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-chart-line text-primary"></i>
+            Visual Disk Head Movement Graph (Track Position vs Step)
+        </h5>
+    </div>
+    <div style="height: 320px; position: relative;">
+        <canvas id="chart-disk-track"></canvas>
+    </div>
+</div>
+
+<!-- Side-by-Side Algorithm Comparison -->
+<div class="card-custom" id="disk-comparison-card" style="display: none;">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-chart-bar text-warning"></i>
+            Disk Scheduling Algorithm Comparison
+        </h5>
+        <span class="badge bg-warning-subtle text-warning" id="badge-best-disk-algo">Best: SSTF</span>
+    </div>
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            <div style="height: 260px; position: relative;">
+                <canvas id="chart-disk-comparison"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Algorithm</th>
+                            <th>Total Seek Distance</th>
+                            <th>Avg Seek Distance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="disk-comparison-table-body">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/disk.js') }}"></script>
+{% endblock %}

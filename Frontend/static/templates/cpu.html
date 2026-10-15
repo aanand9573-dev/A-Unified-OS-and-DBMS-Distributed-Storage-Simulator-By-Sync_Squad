@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}CPU Scheduling{% endblock %}
+{% block page_icon %}fas fa-microchip{% endblock %}
+{% block page_heading %}CPU Scheduler Simulator{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Algorithm Selection & Settings Panel -->
+    <div class="col-lg-4">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-sliders-h text-primary"></i>
+                    Scheduler Settings
+                </h5>
+            </div>
+
+            <form id="form-cpu-scheduler">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">SCHEDULING ALGORITHM</label>
+                    <select class="form-select form-select-custom" id="select-algorithm" onchange="toggleQuantumInput()">
+                        <option value="FCFS" selected>First Come First Served (FCFS)</option>
+                        <option value="RR">Round Robin (RR)</option>
+                        <option value="PRIORITY">Priority Scheduling (Non-Preemptive)</option>
+                        <option value="SJF">Shortest Job First (SJF)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="quantum-container" style="display: none;">
+                    <label class="form-label small text-muted fw-bold">TIME QUANTUM (Q)</label>
+                    <input type="number" class="form-control form-control-custom" id="input-quantum" value="2" min="1">
+                    <small class="text-secondary">Used by Round Robin algorithm for time slicing.</small>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="button" class="btn btn-primary-custom" onclick="runCpuScheduler()">
+                        <i class="fas fa-play me-2"></i>Run CPU Simulation
+                    </button>
+                    <button type="button" class="btn btn-outline-custom" onclick="compareAllCpuAlgorithms()">
+                        <i class="fas fa-chart-bar me-2"></i>Compare All Algorithms
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Processes Ready Queue & Inputs -->
+    <div class="col-lg-8">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <div>
+                    <h5 class="card-title-custom">
+                        <i class="fas fa-list-ol text-primary"></i>
+                        Input Processes Queue
+                    </h5>
+                    <small class="text-secondary" style="font-size: 0.75rem;">Simulated OS CPU scheduler engine (educational model, distinct from host physical CPU)</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-info" onclick="loadActiveProcesses()" title="Import active process tasks from system (including DFS upload/download tasks)">
+                        <i class="fas fa-tasks me-1"></i>Import DFS Tasks
+                    </button>
+                    <button class="btn btn-sm btn-outline-custom" onclick="addProcessRow()">
+                        <i class="fas fa-plus me-1"></i>Add Process
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-responsive" style="max-height: 250px;">
+                <table class="table table-custom mb-0">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Arrival Time (AT)</th>
+                            <th>Burst Time (BT)</th>
+                            <th>Priority</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cpu-process-input-body">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Animated Gantt Chart Execution Card -->
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-stream text-success"></i>
+            CPU Execution Gantt Chart Timeline
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success" id="gantt-algo-name">FCFS</span>
+            <button class="btn btn-sm btn-outline-custom" onclick="playGanttAnimation()">
+                <i class="fas fa-play me-1"></i> Animate Timeline
+            </button>
+        </div>
+    </div>
+
+    <!-- Visual Gantt Container -->
+    <div class="gantt-chart-container mb-3" id="gantt-chart-display">
+        <div class="text-muted small m-auto">Click "Run CPU Simulation" to generate Gantt chart.</div>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between text-secondary small">
+        <div><strong>Execution Sequence:</strong> <span class="font-mono text-white" id="execution-sequence-text">--</span></div>
+        <div>Total Time: <span class="font-mono text-white" id="total-exec-time">0 s</span></div>
+    </div>
+</div>
+
+<!-- Simulation Results & Averages -->
+<div class="row g-4 mb-4">
+    <!-- Performance Summary Metrics Cards -->
+    <div class="col-lg-4">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-calculator text-warning"></i>
+                    Average Metrics
+                </h5>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted d-block uppercase fw-bold">AVG WAITING TIME (WT)</small>
+                        <span class="fs-4 fw-bold text-primary" id="metric-avg-wt">0.00 s</span>
+                    </div>
+                    <i class="fas fa-clock fs-3 text-primary opacity-50"></i>
+                </div>
+
+                <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted d-block uppercase fw-bold">AVG TURNAROUND TIME (TAT)</small>
+                        <span class="fs-4 fw-bold text-purple" id="metric-avg-tat">0.00 s</span>
+                    </div>
+                    <i class="fas fa-history fs-3 text-purple opacity-50"></i>
+                </div>
+
+                <div class="p-3 border border-secondary-subtle rounded-3 bg-dark-subtle d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted d-block uppercase fw-bold">AVG RESPONSE TIME (RT)</small>
+                        <span class="fs-4 fw-bold text-success" id="metric-avg-rt">0.00 s</span>
+                    </div>
+                    <i class="fas fa-bolt fs-3 text-success opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Metrics Table -->
+    <div class="col-lg-8">
+        <div class="card-custom h-100">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-table text-primary"></i>
+                    Per-Process Detailed Results
+                </h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>AT</th>
+                            <th>BT</th>
+                            <th>Completion (CT)</th>
+                            <th>Turnaround (TAT)</th>
+                            <th>Waiting (WT)</th>
+                            <th>Response (RT)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cpu-metrics-table-body">
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">Run simulation to view calculated process metrics.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comparison Chart Section -->
+<div class="card-custom" id="cpu-comparison-card" style="display: none;">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-chart-bar text-cyan"></i>
+            Algorithm Performance Comparison
+        </h5>
+    </div>
+    <div style="height: 300px; position: relative;">
+        <canvas id="chart-cpu-comparison"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/cpu.js') }}"></script>
+{% endblock %}

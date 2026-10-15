@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Node Topology & Block Distribution{% endblock %}
+{% block page_icon %}fas fa-sitemap{% endblock %}
+{% block page_heading %}Distributed Block Topology & Node Placement Map{% endblock %}
+
+{% block content %}
+<!-- Node Topology Visual Map Card -->
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-network-wired text-primary"></i>
+            Distributed File Block Distribution Graph
+        </h5>
+        <button class="btn btn-sm btn-outline-custom" onclick="loadTopologyData()">
+            <i class="fas fa-sync-alt me-1"></i> Refresh Map
+        </button>
+    </div>
+
+    <p class="text-secondary small mb-4">
+        Interactive topology graph showing how files are split into binary blocks and distributed across primary and replica storage nodes. Click any storage node box to view physical block files saved inside its local filesystem directory.
+    </p>
+
+    <!-- Topology Graph Visual Container -->
+    <div class="p-4 border border-secondary-subtle rounded-3 bg-dark-subtle mb-4" id="topology-graph-container" style="min-height: 380px;">
+        <div class="text-center text-muted my-5">Loading distribution topology...</div>
+    </div>
+</div>
+
+<!-- Node Files Inspector Section -->
+<div class="card-custom">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="fas fa-folder text-warning"></i>
+            Physical Node File Inspector (Local Filesystem Directory)
+        </h5>
+        <select class="form-select form-select-custom w-auto" id="select-node-inspector" onchange="inspectNodeFiles()">
+            <!-- Populated -->
+        </select>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Physical File Name</th>
+                    <th>Block ID</th>
+                    <th>Role</th>
+                    <th>Size</th>
+                    <th>Local Storage Path</th>
+                </tr>
+            </thead>
+            <tbody id="node-files-tbody">
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Select a storage node to view physical block files.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dfs_topology.js') }}"></script>
+{% endblock %}

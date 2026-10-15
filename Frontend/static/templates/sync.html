@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Process Synchronization{% endblock %}
+{% block page_icon %}fas fa-sync-alt{% endblock %}
+{% block page_heading %}Process Synchronization & Concurrency Simulator{% endblock %}
+
+{% block content %}
+<!-- Tabs Header -->
+<ul class="nav nav-pills custom-pills mb-4" id="sync-tabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" id="mutex-tab" data-bs-toggle="pill" data-bs-target="#mutex-pane" type="button">
+            <i class="fas fa-key me-2"></i>Mutex Lock (Binary Synchronization)
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="semaphore-tab" data-bs-toggle="pill" data-bs-target="#semaphore-pane" type="button">
+            <i class="fas fa-traffic-light me-2"></i>Counting Semaphore
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="sync-tab-content">
+    <!-- MUTEX TAB PANE -->
+    <div class="tab-pane fade show active" id="mutex-pane">
+        <div class="row g-4 mb-4">
+            <!-- Mutex Critical Section Visual Box -->
+            <div class="col-lg-7">
+                <div class="card-custom h-100">
+                    <div class="card-header-custom">
+                        <h5 class="card-title-custom">
+                            <i class="fas fa-door-closed text-primary"></i>
+                            Critical Section Shared Resource Box
+                        </h5>
+                        <span class="badge badge-running" id="mutex-lock-badge">LOCKED</span>
+                    </div>
+
+                    <!-- Shared Resource Display Box -->
+                    <div class="p-4 border border-secondary-subtle rounded-3 bg-dark-subtle text-center mb-4">
+                        <small class="text-muted d-block uppercase fw-bold mb-2">SHARED CRITICAL RESOURCE: <span id="mutex-resource-name">Shared Database Buffer</span></small>
+                        
+                        <div class="d-flex align-items-center justify-content-center gap-3 my-3">
+                            <div class="p-3 border border-primary rounded-3 bg-primary-subtle text-primary font-mono fw-bold fs-4" id="mutex-current-owner">
+                                P101 (IN CRITICAL SECTION)
+                            </div>
+                        </div>
+
+                        <small class="text-secondary" id="mutex-status-text">Process P101 currently owns the Mutex lock.</small>
+                    </div>
+
+                    <!-- Waiting Queue List -->
+                    <h6 class="fw-bold text-white mb-2"><i class="fas fa-clock text-warning me-2"></i>Waiting Queue (Blocked Processes)</h6>
+                    <div class="d-flex align-items-center gap-2 p-3 border border-secondary-subtle rounded-3 bg-dark-subtle min-h-60" id="mutex-waiting-queue">
+                        <span class="badge badge-waiting">P102</span>
+                        <span class="badge badge-waiting">P103</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mutex Interactive Action Panel -->
+            <div class="col-lg-5">
+                <div class="card-custom h-100">
+                    <div class="card-header-custom">
+                        <h5 class="card-title-custom">
+                            <i class="fas fa-hand-pointer text-success"></i>
+                            Mutex Control Actions
+                        </h5>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">PROCESS TO ACQUIRE LOCK</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-custom font-mono" id="mutex-input-pid" placeholder="e.g. P104" value="P104">
+                            <button class="btn btn-primary-custom" onclick="mutexAcquire()">
+                                <i class="fas fa-lock me-1"></i> Acquire (wait)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small text-muted fw-bold">RELEASE LOCK FOR CURRENT OWNER</label>
+                        <button class="btn btn-outline-danger w-100 py-2 fw-bold" onclick="mutexRelease()">
+                            <i class="fas fa-unlock me-2"></i> Release Mutex Lock
+                        </button>
+                    </div>
+
+                    <div class="d-grid gap-2 border-top border-secondary-subtle pt-3">
+                        <button class="btn btn-outline-custom text-warning" onclick="resetSync()">
+                            <i class="fas fa-undo me-1"></i> Reset Synchronization State
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mutex Live Execution History -->
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-history text-cyan"></i>
+                    Mutex Lock Event History Log
+                </h5>
+            </div>
+            <div class="terminal-window" id="mutex-history-container">
+                <!-- Log history -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SEMAPHORE TAB PANE -->
+    <div class="tab-pane fade" id="semaphore-pane">
+        <div class="row g-4 mb-4">
+            <!-- Semaphore Status Card -->
+            <div class="col-lg-7">
+                <div class="card-custom h-100">
+                    <div class="card-header-custom">
+                        <h5 class="card-title-custom">
+                            <i class="fas fa-traffic-light text-warning"></i>
+                            Counting Semaphore Pool (Max Permits: <span id="sem-max-permits-text">2</span>)
+                        </h5>
+                        <span class="badge bg-primary-subtle text-primary" id="sem-permits-badge">Permits Left: 2</span>
+                    </div>
+
+                    <div class="p-4 border border-secondary-subtle rounded-3 bg-dark-subtle mb-4">
+                        <div class="row align-items-center text-center">
+                            <div class="col-6 border-end border-secondary">
+                                <small class="text-muted d-block fw-bold mb-1">ACTIVE PROCESSES IN CS</small>
+                                <div class="d-flex flex-wrap gap-2 justify-content-center" id="sem-active-procs">
+                                    <span class="badge badge-running">P101</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block fw-bold mb-1">AVAILABLE PERMITS (S)</small>
+                                <div class="fs-2 fw-bold text-success font-mono" id="sem-current-permits">1</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-white mb-2"><i class="fas fa-clock text-warning me-2"></i>Semaphore Waiting Queue</h6>
+                    <div class="d-flex align-items-center gap-2 p-3 border border-secondary-subtle rounded-3 bg-dark-subtle min-h-60" id="sem-waiting-queue">
+                        <span class="text-muted small">Queue empty.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Semaphore Controls -->
+            <div class="col-lg-5">
+                <div class="card-custom h-100">
+                    <div class="card-header-custom">
+                        <h5 class="card-title-custom">
+                            <i class="fas fa-sliders-h text-purple"></i>
+                            Semaphore Operations P() / V()
+                        </h5>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">PROCESS WAIT P(S)</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-custom font-mono" id="sem-input-pid" value="P201">
+                            <button class="btn btn-primary-custom" onclick="semaphoreWait()">
+                                <i class="fas fa-arrow-down me-1"></i> Wait P(S)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small text-muted fw-bold">SIGNAL V(S) RELEASE PERMIT</label>
+                        <button class="btn btn-outline-success w-100 py-2 fw-bold" onclick="semaphoreSignal()">
+                            <i class="fas fa-arrow-up me-2"></i> Signal V(S)
+                        </button>
+                    </div>
+
+                    <div class="border-top border-secondary-subtle pt-3">
+                        <label class="form-label small text-muted fw-bold">CONFIGURE MAX PERMITS</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control form-control-custom font-mono" id="sem-config-permits" value="2" min="1" max="10">
+                            <button class="btn btn-outline-custom" onclick="resetSync()">Re-config</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Semaphore Log History -->
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom">
+                    <i class="fas fa-history text-cyan"></i>
+                    Semaphore Event History Log
+                </h5>
+            </div>
+            <div class="terminal-window" id="sem-history-container">
+                <!-- Log history -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sync.js') }}"></script>
+{% endblock %}
