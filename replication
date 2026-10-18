@@ -1,0 +1,116 @@
+import os
+from backend.models.metadata_store import metadata_store
+from backend.dfs.node_manager import node_manager
+from backend.dfs.block_manager import block_manager
+from backend.utils.logger import logger
+
+class ReplicationManager:
+    def replicate_blocks(self, blocks, online_nodes=None, replication_factor=2, algorithm=None):
+        """
+        Replicates each block to a distinct secondary online node respecting capacity
+        and driven by the active Node Allocation Algorithm.
+        """
+        if replication_factor < 2:
+            return 0
+
+        current_online = node_manager.get_online_nodes()
+        if len(current_online) < 2:
+            logger.log("SYSTEM", "warning", "Replication skipped: Requires at least 2 online storage nodes.")
+            return 0
+
+        replicated_count = 0
+        for idx, block in enumerate(blocks):
+            p_node_id = block["primary_node_id"]
+            block_size_mb = block.get("size_mb", 0.0)
+            
+            try:
+                # Use node_manager algorithm-based selection, excluding primary node
+                r_node_id = node_manager.select_node_for_block(
+                    block_size_mb=block_size_mb,
+                    exclude_node_ids=[p_node_id],
+                    algorithm=algorithm
+                )
+                block_manager.save_block_to_node(block, r_node_id, is_replica=True)
+                replicated_count += 1
+                logger.log("SYSTEM", "success", f"Replicated block {block['id']} -> Replica Node {r_node_id} (Primary: {p_node_id}).")
+            except Exception as e:
+                logger.log("SYSTEM", "warning", f"Replication notice for block {block['id']}: {e}")
+
+        metadata_store.save()
+        return replicated_count
+
+    def repair_under_replicated_blocks(self, online_nodes=None, algorithm=None):
+        """
+        Scans all stored blocks. If a block has only 1 available copy on an ONLINE node,
+        creates a new replica on another healthy online node to restore full redundancy
+        using algorithm-driven node selection.
+        """
+        current_online = node_manager.get_online_nodes()
+        if len(current_online) < 2:
+            logger.log("SYSTEM", "warning", "Cannot repair replication: Requires at least 2 online storage nodes.")
+            return {"repaired_count": 0, "repaired_blocks": [], "errors": ["Fewer than 2 online nodes available."]}
+
+        repaired_blocks = []
+        errors = []
+
+        for b_id, block in list(metadata_store.blocks.items()):
+            p_node_id = block.get("primary_node_id")
+            r_node_id = block.get("replica_node_id")
+
+            p_node = metadata_store.nodes.get(p_node_id)
+            r_node = metadata_store.nodes.get(r_node_id)
+
+            p_online = (p_node and p_node["status"] == "ONLINE" and os.path.exists(block.get("primary_file_path", "")))
+            r_online = (r_node and r_node["status"] == "ONLINE" and os.path.exists(block.get("replica_file_path", "")))
+
+            # If both are online, block is healthy
+            if p_online and r_online:
+                continue
+
+            # If neither is online, data is currently unreachable
+            if not p_online and not r_online:
+                errors.append(f"Block {b_id} has NO online copies available for repair.")
+                continue
+
+            # We have one surviving copy. Read its bytes
+            surviving_node_id = p_node_id if p_online else r_node_id
+            try:
+                data_chunk, src_node, _ = block_manager.read_block_data(block)
+                block_size_mb = block.get("size_mb", 0.0)
+
+                # Algorithm-driven selection of target node with sufficient capacity
+                target_node_id = node_manager.select_node_for_block(
+                    block_size_mb=block_size_mb,
+                    exclude_node_ids=[surviving_node_id],
+                    algorithm=algorithm
+                )
+
+                # Clone block into target node
+                temp_block = dict(block)
+                temp_block["data_chunk"] = data_chunk
+
+                if not p_online:
+                    # Promote surviving replica or replace primary
+                    block_manager.save_block_to_node(temp_block, target_node_id, is_replica=False)
+                    block["primary_node_id"] = target_node_id
+                    block["primary_file_path"] = temp_block["primary_file_path"]
+                else:
+                    # Repair replica
+                    block_manager.save_block_to_node(temp_block, target_node_id, is_replica=True)
+                    block["replica_node_id"] = target_node_id
+                    block["replica_file_path"] = temp_block["replica_file_path"]
+
+                repaired_blocks.append(b_id)
+                logger.log("SYSTEM", "success", f"REPAIR COMPLETE: Block {b_id} re-replicated to healthy Node {target_node_id} from Node {surviving_node_id}.")
+            except Exception as e:
+                errors.append(f"Error repairing block {b_id}: {str(e)}")
+
+        metadata_store.save()
+        return {
+            "repaired_count": len(repaired_blocks),
+            "repaired_blocks": repaired_blocks,
+            "errors": errors
+        }
+
+replication_manager = ReplicationManager()
+
