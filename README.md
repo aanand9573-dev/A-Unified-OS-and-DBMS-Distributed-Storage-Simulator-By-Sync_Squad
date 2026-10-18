@@ -38,7 +38,7 @@ An interactive, educational Operating System (OS) Simulator featuring a modern w
 
 ---
 
-## 🏛️ System Architecture
+# System Architecture
 
 The application is built with a decoupled, modular architecture:
 
@@ -81,7 +81,7 @@ dfs_project/
 
 ---
 
-## 📖 OS Concepts & Module Viva Explanation Guide
+# OS Concepts & Module Viva Explanation Guide
 
 ### 1. Process Management (`process_manager.py`)
 - **Process Control Block (PCB)**: Stores `pid`, `name`, `type`, `arrival_time`, `burst_time`, `priority`, and `state`.
